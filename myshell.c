@@ -29,7 +29,7 @@ as you dp not need to use any features for this assignment that are supported by
 int parseInput(char *buffer,char *commands[],int *nextNull,int *size,int *childCounter)
 {
 	// This function will parse the input string into multiple commands or a single command with arguments depending on the delimiter (&&, ##, >, or spaces).
-	printf("inside parseInput\n");
+	// printf("inside parseInput\n");
 	char *command;
 	// int size=0;
 	int functionIndex=0;
@@ -81,9 +81,9 @@ int parseInput(char *buffer,char *commands[],int *nextNull,int *size,int *childC
 
 void changeDirectory(char *str)
 {
-	printf("change directory function\n");
-	printf("path %s\n",str);
-	printf("status %d\n",chdir(str));
+	// printf("change directory function\n");
+	// printf("path %s\n",str);
+	// printf("status %d\n",chdir(str));
 	if(str!=NULL)
     {
         if(chdir(str)==-1)
@@ -97,11 +97,11 @@ void changeDirectory(char *str)
 void executeCommand(char *commands[],int  marker)
 {
 	// This function will fork a new process to execute a command
-	printf("executeCommand function\n");
-	printf("%s %s\n",commands[0],commands[1]);
+	// printf("executeCommand function\n");
+	// printf("%s %s\n",commands[0],commands[1]);
 	if (strcmp(commands[marker],"cd")==0)
 	{
-		printf("calling change directory\n");
+		// printf("calling change directory\n");
 		changeDirectory(commands[marker+1]);
 	}
 	else
@@ -120,7 +120,7 @@ void executeCommand(char *commands[],int  marker)
             }
         } 
         else {              // parent process (rc holds child PID)
-            int rwait = wait(NULL);
+            int childWait = wait(NULL);
         }
 	}
 	
@@ -154,7 +154,7 @@ void executeParallelCommands(char *commands[],int *nextNull,int childNum)
 	} 
 	else {         
 		     // parent process (rc holds child PID)
-		printf("2nd child activated\n");
+		// printf("2nd child activated\n");
 		for (int i = 1; i < childNum; i++)
 		{
 			if (update<childNum)
@@ -283,9 +283,30 @@ void executeSequentialCommands(char *commands[],int *nextNull,int childNum)
 	// }
 }
 
-void executeCommandRedirection()
+void executeCommandRedirection(char *filename,char *commands[])
 {
 	// This function will run a single command with output redirected to an output file specificed by user
+	int child = fork();
+	
+	if (child < 0){			// fork failed; exit
+		exit(0);
+	}
+	else if (child == 0) {		// child (new) process
+
+		
+		close(STDOUT_FILENO);
+		open(filename, O_CREAT | O_WRONLY | O_APPEND);
+		
+		if (execvp(commands[0], commands)<0)
+		{
+			printf("Incorrect command\n");
+		}
+		
+
+	} 
+	else {              // parent process (rc holds child PID)
+		int childWait = wait(NULL);
+	}
 }
 
 int main()
@@ -316,7 +337,7 @@ int main()
 		buffer =  (char *)malloc(sizeof(char)*bufsize);
 		characters = getline(&buffer,&bufsize,stdin);
 		buffer[characters-1]='\0';
-		printf("input taken\n");
+		// printf("input taken\n");
 		
 		if(strcmp(buffer,exitStatus)==0)	// When user uses exit command.
 		{
@@ -325,7 +346,7 @@ int main()
 		}
 		else
 		{
-			printf("inside else\n");
+			// printf("inside else\n");
 
 			//  puts ("Please enter a line of text.");
 
@@ -335,30 +356,40 @@ int main()
 			// Parse input with 'strsep()' for different symbols (&&, ##, >) and for spaces.
 			functionIndex=parseInput(buffer,commands,nextNull,&size,&childCounter); 	
 
-			printf("after funtionIndex\n");
+			// printf("after funtionIndex\n");
 
-			printf("functionIndex %d\n",functionIndex);
+			// printf("functionIndex %d\n",functionIndex);
 
-			for (int i = 0; i < size; i++)
-			{
-				printf("%s ",commands[i]);
-			}
+			// for (int i = 0; i < size; i++)
+			// {
+			// 	printf("%s ",commands[i]);
+			// }
 
-			for (int i = 0; i < childCounter; i++)
-			{
-				printf("%d ",nextNull[i]);
-			}			
+			// for (int i = 0; i < childCounter; i++)
+			// {
+			// 	printf("%d ",nextNull[i]);
+			// }			
 
 
 			if(functionIndex==1)
+			{
 				executeParallelCommands(commands,nextNull,childCounter);		// This function is invoked when user wants to run multiple commands in parallel (commands separated by &&)
+			}
 			else if(functionIndex==2)
+			{
 				executeSequentialCommands(commands,nextNull,childCounter);	// This function is invoked when user wants to run multiple commands sequentially (commands separated by ##)
+			}
 			else if(functionIndex==3)
-				executeCommandRedirection();	// This function is invoked when user wants redirect output of a single command to and output file specificed by user
+			{
+				int marker = nextNull[0]+1;
+				char *filename=commands[marker];
+				executeCommandRedirection(filename,commands);	// This function is invoked when user wants redirect output of a single command to and output file specificed by user
+			}	
 			else
+			{
 				executeCommand(commands,0);		// This function is invoked when user wants to run a single commands
-		
+
+			}		
 		}
 		
 	}
