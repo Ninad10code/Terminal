@@ -94,15 +94,15 @@ void changeDirectory(char *str)
     }
 }
 
-void executeCommand(char *commands[])
+void executeCommand(char *commands[],int  marker)
 {
 	// This function will fork a new process to execute a command
 	printf("executeCommand function\n");
 	printf("%s %s\n",commands[0],commands[1]);
-	if (strcmp(commands[0],"cd")==0)
+	if (strcmp(commands[marker],"cd")==0)
 	{
 		printf("calling change directory\n");
-		changeDirectory(commands[1]);
+		changeDirectory(commands[marker+1]);
 	}
 	else
 	{
@@ -114,13 +114,13 @@ void executeCommand(char *commands[])
         else if (child == 0) {
             signal(SIGINT, SIG_DFL);	
             signal(SIGTSTP, SIG_DFL);	   // child (new) process
-            if(execvp(commands[0], commands)<0)
+            if(execvp(commands[marker], commands+marker)<0)
             {
                 printf("Shell: Incorrect command\n");
             }
         } 
         else {              // parent process (rc holds child PID)
-            // int wait = wait(NULL);
+            int rwait = wait(NULL);
         }
 	}
 	
@@ -185,7 +185,7 @@ void executeParallelCommands(char *commands[],int *nextNull,int childNum)
 
 			}
 			else {              // parent process (rc holds child PID)
-				// int rc_wait2 = wait(NULL);
+				int rc_wait2 = wait(NULL);
 			}
 			update++;
 
@@ -200,74 +200,87 @@ void executeParallelCommands(char *commands[],int *nextNull,int childNum)
 
 void executeSequentialCommands(char *commands[],int *nextNull,int childNum)
 {	
-	// This function will run multiple commands in sequence
-	int *childs = (int *)malloc(sizeof(int)*(childNum));
+
 	int marker=0,update=0;
-	int *rc_wait = (int *)malloc(sizeof(int)*childNum);
-	childs[0]=fork();
-	if (childs[0] < 0){		     	// fork failed; exit
-		exit(0);
+	for (int i = 0; i < childNum; i++)
+	{
+		executeCommand(commands,marker);
+		if (update<childNum)
+		{
+			marker=nextNull[update]+1;
+		}
+		update++;
+		
 	}
-	else if (childs[0] == 0) {	
-        signal(SIGINT, SIG_DFL);
-        signal(SIGTSTP, SIG_DFL);		
-        if(strcmp(commands[0],"cd")==0)
-        {
-			changeDirectory(commands[1]);
-        }
-        else
-        {
-            if(execvp(commands[0], commands)<0)
-            {
-                 printf("Shell: Incorrect command\n");
-            }
-        }
+	
+	// This function will run multiple commands in sequence
+	// int *childs = (int *)malloc(sizeof(int)*(childNum));
+	// int marker=0,update=0;
+	// int *rc_wait = (int *)malloc(sizeof(int)*childNum);
+	// childs[0]=fork();
+	// if (childs[0] < 0){		     	// fork failed; exit
+	// 	exit(0);
+	// }
+	// else if (childs[0] == 0) {	
+    //     signal(SIGINT, SIG_DFL);
+    //     signal(SIGTSTP, SIG_DFL);		
+    //     if(strcmp(commands[0],"cd")==0)
+    //     {
+	// 		changeDirectory(commands[1]);
+    //     }
+    //     else
+    //     {
+    //         if(execvp(commands[0], commands)<0)
+    //         {
+    //              printf("Shell: Incorrect command\n");
+    //         }
+    //     }
         
 		
-	} 
-	else {         
-		     // parent process (rc holds child PID)
-		printf("2nd child activated\n");
-		for (int i = 1; i < childNum; i++)
-		{
-        	int rc_wait[i] = wait(NULL);             // parent process (rc holds child PID)
+	// } 
+	// else {         
+	// 	     // parent process (rc holds child PID)
+	// 	printf("2nd child activated\n");
+	// 	for (int i = 1; i < childNum; i++)
+	// 	{
+    //     	int rc_wait[i] = wait(NULL);             // parent process (rc holds child PID)
 
-			if (update<childNum)
-			{
-				marker = nextNull[update]+1;
+	// 		if (update<childNum)
+	// 		{
+	// 			marker = nextNull[update]+1;
 				
-			}
+	// 		}
 
 			
-			childs[i] = fork();
-			if (childs[i] < 0){			// fork failed; exit
-				exit(0);
-			}
-			else if (childs[i] == 0) {		// child (new) process 2
-        	    signal(SIGINT, SIG_DFL);
-        	    signal(SIGTSTP, SIG_DFL);		
-        	    if(strcmp(commands[marker],"cd")==0)
-        	    {
-					changeDirectory(commands[marker+1]);
+	// 		childs[i] = fork();
+	// 		if (childs[i] < 0){			// fork failed; exit
+	// 			exit(0);
+	// 		}
+	// 		else if (childs[i] == 0) {		// child (new) process 2
+    //     	    signal(SIGINT, SIG_DFL);
+    //     	    signal(SIGTSTP, SIG_DFL);		
+    //     	    if(strcmp(commands[marker],"cd")==0)
+    //     	    {
+	// 				changeDirectory(commands[marker+1]);
         	        
-        	    }
-        	    else
-        	    {
-        	        if(execvp(commands[marker], commands+marker)<0)
-        	        {
-        	            printf("Shell: Incorrect command\n");
-        	        }
-        	    }
+    //     	    }
+    //     	    else
+    //     	    {
+    //     	        if(execvp(commands[marker], commands+marker)<0)
+    //     	        {
+    //     	            printf("Shell: Incorrect command\n");
+    //     	        }
+    //     	    }
 
-			}
-			else {              // parent process (rc holds child PID)
-				int rc_wait[i+1] = wait(NULL);
-			}
-			update++;
+	// 		}
+	// 		else {              // parent process (rc holds child PID)
+	// 			int rc_wait[i+1] = wait(NULL);
+	// 		}
+	// 		update++;
 
-		}
+	// 	}
 		
-	}
+	// }
 }
 
 void executeCommandRedirection()
@@ -344,7 +357,7 @@ int main()
 			else if(functionIndex==3)
 				executeCommandRedirection();	// This function is invoked when user wants redirect output of a single command to and output file specificed by user
 			else
-				executeCommand(commands);		// This function is invoked when user wants to run a single commands
+				executeCommand(commands,0);		// This function is invoked when user wants to run a single commands
 		
 		}
 		
