@@ -29,11 +29,15 @@ as you dp not need to use any features for this assignment that are supported by
 int parseInput(char *buffer,char *commands[],int *nextNull,int *size,int *childCounter)
 {
 	// This function will parse the input string into multiple commands or a single command with arguments depending on the delimiter (&&, ##, >, or spaces).
-	// printf("inside parseInput\n");
+	
 	char *command;
 	int functionIndex=0;
 	while((command = strsep(&buffer," ")) != NULL )
-    {
+    {	
+		/* whenever a command taken from buffer during getline finds a delimiter operator 
+		 it adds NULL value into the commands string array */
+		/*Whenever the delimeter operator is detected childCounter is incremented so as to keep track of childs require for parallel execution*/
+		// nextNull array keeps track of position where we have added NULL value into the commands[] string array
 		if (strcmp(command,"&&")==0)
 		{
 			functionIndex=1;
@@ -73,16 +77,14 @@ int parseInput(char *buffer,char *commands[],int *nextNull,int *size,int *childC
 	commands[*size]=NULL;
 
 	return functionIndex;
-
+	// functionIndex returns an integer to specify which type of operation to perform in main function
 	
 	
 }
 
 void changeDirectory(char *str)
 {
-	// printf("change directory function\n");
-	// printf("path %s\n",str);
-	// printf("status %d\n",chdir(str));
+	// function to change current directory to a specified directory 
 	if(str!=NULL)
     {
         if(chdir(str)==-1)
@@ -95,30 +97,31 @@ void changeDirectory(char *str)
 
 void executeCommand(char *commands[],int  marker)
 {
-	// This function will fork a new process to execute a command
-	// printf("executeCommand function\n");
-	// printf("%s %s\n",commands[0],commands[1]);
+	// executecommand function accepts commands[] string array and marker(which is the position of command to perform)
 	if (strcmp(commands[marker],"cd")==0)
 	{
-		// printf("calling change directory\n");
 		changeDirectory(commands[marker+1]);
 	}
 	else
 	{
 		int child = fork();     
-        if (child < 0){	
+        if (child < 0)
+		{	
             // fork failed; exit
             exit(0);
         }
-        else if (child == 0) {
+        else if (child == 0) 
+		{
             signal(SIGINT, SIG_DFL);	
             signal(SIGTSTP, SIG_DFL);	   // child (new) process
             if(execvp(commands[marker], commands+marker)<0)
             {
                 printf("Shell: Incorrect command\n");
             }
+			exit(0);
         } 
-        else {              // parent process (rc holds child PID)
+        else
+		{              // parent process (rc holds child PID)
             int childWait = wait(NULL);
         }
 	}
@@ -128,13 +131,18 @@ void executeCommand(char *commands[],int  marker)
 void executeParallelCommands(char *commands[],int *nextNull,int childNum)
 {
 	// This function will run multiple commands in parallel
+	/* the function accepts command[] string array , nextNull integer array which specifies the position of null in commands[] array
+	 and childNum which is the number of childs to be created*/
+
 	int *childs = (int *)malloc(sizeof(int)*(childNum));
 	int marker=0,update=0;
 	childs[0]=fork();
-	if (childs[0] < 0){		     	// fork failed; exit
+	if (childs[0] < 0)
+	{		     	// fork failed; exit
 		exit(0);
 	}
-	else if (childs[0] == 0) {	
+	else if (childs[0] == 0) 
+	{	
         signal(SIGINT, SIG_DFL);
         signal(SIGTSTP, SIG_DFL);		
         if(strcmp(commands[0],"cd")==0)
@@ -147,26 +155,30 @@ void executeParallelCommands(char *commands[],int *nextNull,int childNum)
             {
                  printf("Shell: Incorrect command\n");
             }
+			exit(0);
+
         }
         
 		
 	} 
 	else {         
-		     // parent process (rc holds child PID)
-		// printf("2nd child activated\n");
+		  
 		for (int i = 1; i < childNum; i++)
 		{
 			if (update<childNum)
 			{
 				marker = nextNull[update]+1;
+				// change the marker(which points to position of next command) with track of nextNull array position
 				
 			}
 			
 			childs[i] = fork();
-			if (childs[i] < 0){			// fork failed; exit
+			if (childs[i] < 0)
+			{			// fork failed; exit
 				exit(0);
 			}
-			else if (childs[i] == 0) {		// child (new) process 2
+			else if (childs[i] == 0) 
+			{		// child (new) process 2
         	    signal(SIGINT, SIG_DFL);
         	    signal(SIGTSTP, SIG_DFL);		
         	    if(strcmp(commands[marker],"cd")==0)
@@ -180,10 +192,13 @@ void executeParallelCommands(char *commands[],int *nextNull,int childNum)
         	        {
         	            printf("Shell: Incorrect command\n");
         	        }
+					exit(0);
+
         	    }
 
 			}
-			else {              // parent process (rc holds child PID)
+			else 
+			{              // parent process (rc holds child PID)
 				int rc_wait2 = wait(NULL);
 			}
 			update++;
@@ -199,14 +214,20 @@ void executeParallelCommands(char *commands[],int *nextNull,int childNum)
 
 void executeSequentialCommands(char *commands[],int *nextNull,int childNum)
 {	
+	// This functions executes commands in a sequence manner with FIFO
+	/* the function accepts command[] string array , nextNull integer array which specifies the position of null in commands[] array
+	 and childNum to track how many process needs to be executed*/
 
 	int marker=0,update=0;
 	for (int i = 0; i < childNum; i++)
 	{
+		// calling executeCommand everytime to execute commands in commands[] array sequentially
 		executeCommand(commands,marker);
 		if (update<childNum)
 		{
 			marker=nextNull[update]+1;
+			// change the marker(which points to position of next command) with track of nextNull array position
+
 		}
 		update++;
 		
@@ -220,10 +241,12 @@ void executeCommandRedirection(char *filename,char *commands[])
 	// This function will run a single command with output redirected to an output file specificed by user
 	int child = fork();
 	
-	if (child < 0){			// fork failed; exit
+	if (child < 0)
+	{			// fork failed; exit
 		exit(0);
 	}
-	else if (child == 0) {		// child (new) process
+	else if (child == 0) 
+	{		// child (new) process
 
 		
 		close(STDOUT_FILENO);
@@ -234,6 +257,8 @@ void executeCommandRedirection(char *filename,char *commands[])
             printf("Shell: Incorrect command\n");
 		
 		}
+		exit(0);
+
 		
 
 	} 
@@ -270,7 +295,7 @@ int main()
 		buffer =  (char *)malloc(sizeof(char)*bufsize);
 		characters = getline(&buffer,&bufsize,stdin);
 		buffer[characters-1]='\0';
-		// printf("input taken\n");
+	
 		
 		if(strcmp(buffer,exitStatus)==0)	// When user uses exit command.
 		{
@@ -279,11 +304,9 @@ int main()
 		}
 		else
 		{
-			
+			// calling parseInput function to break the buffer into separate words(command)
 			functionIndex=parseInput(buffer,commands,nextNull,&size,&childCounter); 	
-
-						
-
+			// functionIndex will get an integer to specify which operation to perform
 
 			if(functionIndex==1)
 			{
@@ -297,6 +320,7 @@ int main()
 			{
 				int marker = nextNull[0]+1;
 				char *filename=commands[marker];
+				// filename will have the value specified by user after ">" delimitery operator
 				executeCommandRedirection(filename,commands);	// This function is invoked when user wants redirect output of a single command to and output file specificed by user
 			}	
 			else
