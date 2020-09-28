@@ -31,7 +31,6 @@ int parseInput(char *buffer,char *commands[],int *nextNull,int *size,int *childC
 	// This function will parse the input string into multiple commands or a single command with arguments depending on the delimiter (&&, ##, >, or spaces).
 	// printf("inside parseInput\n");
 	char *command;
-	// int size=0;
 	int functionIndex=0;
 	while((command = strsep(&buffer," ")) != NULL )
     {
@@ -66,7 +65,7 @@ int parseInput(char *buffer,char *commands[],int *nextNull,int *size,int *childC
 		else
 		{
 			commands[*size]=command;
-			// nextNull[*size]=21;
+			
         	*size+=1;
 		}
 
@@ -213,74 +212,7 @@ void executeSequentialCommands(char *commands[],int *nextNull,int childNum)
 		
 	}
 	
-	// This function will run multiple commands in sequence
-	// int *childs = (int *)malloc(sizeof(int)*(childNum));
-	// int marker=0,update=0;
-	// int *rc_wait = (int *)malloc(sizeof(int)*childNum);
-	// childs[0]=fork();
-	// if (childs[0] < 0){		     	// fork failed; exit
-	// 	exit(0);
-	// }
-	// else if (childs[0] == 0) {	
-    //     signal(SIGINT, SIG_DFL);
-    //     signal(SIGTSTP, SIG_DFL);		
-    //     if(strcmp(commands[0],"cd")==0)
-    //     {
-	// 		changeDirectory(commands[1]);
-    //     }
-    //     else
-    //     {
-    //         if(execvp(commands[0], commands)<0)
-    //         {
-    //              printf("Shell: Incorrect command\n");
-    //         }
-    //     }
-        
-		
-	// } 
-	// else {         
-	// 	     // parent process (rc holds child PID)
-	// 	printf("2nd child activated\n");
-	// 	for (int i = 1; i < childNum; i++)
-	// 	{
-    //     	int rc_wait[i] = wait(NULL);             // parent process (rc holds child PID)
-
-	// 		if (update<childNum)
-	// 		{
-	// 			marker = nextNull[update]+1;
-				
-	// 		}
-
-			
-	// 		childs[i] = fork();
-	// 		if (childs[i] < 0){			// fork failed; exit
-	// 			exit(0);
-	// 		}
-	// 		else if (childs[i] == 0) {		// child (new) process 2
-    //     	    signal(SIGINT, SIG_DFL);
-    //     	    signal(SIGTSTP, SIG_DFL);		
-    //     	    if(strcmp(commands[marker],"cd")==0)
-    //     	    {
-	// 				changeDirectory(commands[marker+1]);
-        	        
-    //     	    }
-    //     	    else
-    //     	    {
-    //     	        if(execvp(commands[marker], commands+marker)<0)
-    //     	        {
-    //     	            printf("Shell: Incorrect command\n");
-    //     	        }
-    //     	    }
-
-	// 		}
-	// 		else {              // parent process (rc holds child PID)
-	// 			int rc_wait[i+1] = wait(NULL);
-	// 		}
-	// 		update++;
-
-	// 	}
-		
-	// }
+	
 }
 
 void executeCommandRedirection(char *filename,char *commands[])
@@ -299,7 +231,8 @@ void executeCommandRedirection(char *filename,char *commands[])
 		
 		if (execvp(commands[0], commands)<0)
 		{
-			printf("Incorrect command\n");
+            printf("Shell: Incorrect command\n");
+		
 		}
 		
 
@@ -341,34 +274,15 @@ int main()
 		
 		if(strcmp(buffer,exitStatus)==0)	// When user uses exit command.
 		{
-			printf("Exiting shell...");
+			printf("Exiting shell...\n");
 			runProg=0;
 		}
 		else
 		{
-			// printf("inside else\n");
-
-			//  puts ("Please enter a line of text.");
-
-  			/* These 2 lines are the heart of the program. */
-  			//my_string = (char *) malloc (nbytes + 1);
-  			//command = getline (&my_string, &nbytes, stdin);
-			// Parse input with 'strsep()' for different symbols (&&, ##, >) and for spaces.
+			
 			functionIndex=parseInput(buffer,commands,nextNull,&size,&childCounter); 	
 
-			// printf("after funtionIndex\n");
-
-			// printf("functionIndex %d\n",functionIndex);
-
-			// for (int i = 0; i < size; i++)
-			// {
-			// 	printf("%s ",commands[i]);
-			// }
-
-			// for (int i = 0; i < childCounter; i++)
-			// {
-			// 	printf("%d ",nextNull[i]);
-			// }			
+						
 
 
 			if(functionIndex==1)
